@@ -3,7 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: './src/index.ts',
   output: {
     filename: 'src/[name].[fullhash].js',
     path: path.resolve(__dirname, 'dist')
@@ -31,6 +31,9 @@ module.exports = {
       },
       { test: /\.ts$/, use: 'ts-loader' }
     ],
+  },
+  resolve: {
+    extensions: ['.ts', '.js'],
   },
   devServer: {
     historyApiFallback: true,
