@@ -3,8 +3,14 @@ module.exports = {
     browser: true,
     es2021: true,
   },
+  Plugin: [
+    "@typescript-eslint"
+  ],
+  parser: "@typescript-eslint/parser",
   extends: [
     'airbnb-base',
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
   ],
   parserOptions: {
     ecmaVersion: 13,
