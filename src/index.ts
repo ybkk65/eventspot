@@ -1,6 +1,5 @@
 import './index.scss';
 
+const hello = 'hello';
 
-const hello: string = 'hello';
-
-console.log(hello)
+console.log(hello);

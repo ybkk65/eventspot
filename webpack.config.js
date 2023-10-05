@@ -3,6 +3,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 
 module.exports = {
+  // entry: './src/index.js' if you unuse typescript entry
   entry: './src/index.ts',
   output: {
     filename: 'src/[name].[fullhash].js',
@@ -17,7 +18,7 @@ module.exports = {
           loader: 'babel-loader',
           options: {
             presets: ['@babel/preset-env'],
-            plugins: ['@babel/plugin-proposal-object-rest-spread']
+            plugins: ['@babel/plugin-transform-object-rest-spread']
           }
         }
       },
@@ -56,7 +57,7 @@ module.exports = {
       hash: true
     }),
     new ESLintPlugin({
-      extensions: 'js',
+      extensions: ['js', 'ts'],
       exclude: 'node_modules',
       files: './src/'
     })
