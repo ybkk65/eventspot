@@ -4,9 +4,9 @@
 
 Use the package manager [npm](https://www.npmjs.com/) to install helloworld.
 
-Use node v16 use :
+Use node v20 use :
 ```bash
-nvm install 16
+nvm install 20
 ```
 
 ```bash
