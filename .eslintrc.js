@@ -1,24 +1,24 @@
 module.exports = {
   env: {
     browser: true,
-    es2021: true,
+    es2021: true
   },
   extends: [
     "airbnb-base",
     "airbnb-typescript/base",
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended"
   ],
   overrides: [
     {
       env: {
-        node: true,
+        node: true
       },
       files: [".eslintrc.{js,cjs}"],
       parserOptions: {
-        sourceType: "script",
-      },
-    },
+        sourceType: "script"
+      }
+    }
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
@@ -33,5 +33,7 @@ module.exports = {
     "linebreak-style": 0,
     "global-require": 0,
     "eslint linebreak-style": [0, "error", "windows"],
-  },
+    "@typescript-eslint/comma-dangle": 0,
+    "no-new": 0
+  }
 };

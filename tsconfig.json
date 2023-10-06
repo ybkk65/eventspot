@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "strictNullChecks": true,
     "strictFunctionTypes": true,
-    "strictPropertyInitialization": true                              /* Skip type checking all .d.ts files. */
+    "strictPropertyInitialization": true                                   /* Skip type checking all .d.ts files. */
   },
   "include": ["src/**/*", "global.d.ts"],
   "exclude": [
