@@ -7,7 +7,10 @@
     "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
     "strict": true,                                     /* Enable all strict type-checking options. */                      
     "noImplicitAny": true,                                 /* Enable no decaler value return function */   
-    "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true                              /* Skip type checking all .d.ts files. */
   },
   "include": ["src/**/*", "global.d.ts"],
   "exclude": [
