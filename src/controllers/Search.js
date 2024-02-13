@@ -52,7 +52,7 @@ const Search = class {
           new Date(
             new Date().getTime() - new Date(user.dob * 1000).getTime()
           ).getFullYear() - 1970 > age
-        );
+        ));
 
         this.el.innerHTML = this.render();
         this.onKeyUp();
