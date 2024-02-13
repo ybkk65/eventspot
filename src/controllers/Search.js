@@ -18,9 +18,7 @@ const Search = class {
 
     elInputSearch.addEventListener('keyup', () => {
       const keyWord = elInputSearch.value;
-      const data = this.filters(
-        'name',
-        this.data,
+      const data = this.data.filter(
         ({ user }) => user.name.first.includes(keyWord)
       );
 
@@ -41,16 +39,6 @@ const Search = class {
     `;
   }
 
-  filters(param, data, filter) {
-    let updateData = data;
-
-    if (param) {
-      updateData = updateData.filter(filter);
-    }
-
-    return updateData;
-  }
-
   run() {
     const { results } = this.params;
 
@@ -60,14 +48,10 @@ const Search = class {
         const { data } = res;
         const { age } = this.params;
 
-        this.data = this.filters(
-          parseInt(age, 10),
-          data.results,
-          ({ user }) => (
-            new Date(
-              new Date().getTime() - new Date(user.dob * 1000).getTime()
-            ).getFullYear() - 1970 > age
-          )
+        this.data = data.results.filter(({ user }) => (
+          new Date(
+            new Date().getTime() - new Date(user.dob * 1000).getTime()
+          ).getFullYear() - 1970 > age
         );
 
         this.el.innerHTML = this.render();
