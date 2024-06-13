@@ -1,35 +1,46 @@
-import card_image from '../assets/image/card_image.png';
+import { getCategoryEmoji } from './emojieCategorie';
+import { getmajorite } from './majorite';
+import { getacces } from './acces';
 
-export default () => (`
-  <div class="event_card">
+export default (id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image) => {
+  return (`
+  <div class="event_card" data-id="${id}">
+    
     <div class="event_img">
-      <img src="${card_image}" alt="">
+      <img src="${image}" alt="image_event">
     </div>
     <div class="event_info">
       <div class="event_date">
-        <div class="mois">AUG</div>
-        <div class="jour">17</div>
+        <div class="mois">${mois}</div>
+        <div class="jour">${jour}</div>
       </div>
       <div class="event_description">
-        <div class="titre">WorldWild Concert Barcelona</div>
+        <div class="titre">${titre}</div>
         <div class="description">
-          Plongez dans une nuit électrique de musique mondiale à Barcelone, où les sons envoûtants et les rythmes palpitants vous transporteront vers une expérience inoubliable.
+          ${description}
         </div>
       </div>
     </div>
     <div class="card_option_container">
       <div class="card_option_container_item">
-        <p>💵 20$</p>
+        <p>💶${prix}</p>
       </div>
       <div class="card_option_container_item">
-        <p>🎂 anniv</p>
+        <p>${getCategoryEmoji(categorie)}${categorie}</p>
       </div>
       <div class="card_option_container_item">
-        <p>🕺 22</p>
+        <p>🧑‍🤝‍🧑${nbr_pers}</p>
       </div>
       <div class="card_option_container_item">
-        <p>🇫🇷 France</p>
+        <p><span id='drap' class="${country_icone}"></span>${pays}</p>
+      </div>
+      <div class="card_option_container_item">
+        <p>${getacces(acces)} ${acces}</p>
+      </div>
+      <div class="card_option_container_item">
+        <p>${getmajorite(majorite)} ${majorite}</p>
       </div>
     </div>
   </div>
-`);
+  `);
+};

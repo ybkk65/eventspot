@@ -6,7 +6,7 @@ export default (id, mois, jour, titre, description, prix, categorie, nbr_pers, c
   return (`
   <div class="event_card" data-id="${id}">
     <div class="event_icons">
-      <div class="icon delete"><i class="fa-solid fa-heart" style="color: #e32400;"></i></div>
+      <div class="icon delete"><i class="fa-regular fa-heart" style="color: #e32400;"></i></div>
     </div>
     <div class="event_img">
       <img src="${image}" alt="image_event">

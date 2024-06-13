@@ -325,6 +325,20 @@ export default () => (`
     <label for="toutages">Tous âges</label>
 </div>
 </div>
+<section class="inviter_une_personne">
+    <div class="title_person_container">
+        <h4>Inviter une personne</h4>
+        <input class="check_invie" type="checkbox">
+    </div>
+<div class="select_person_container">
+
+    <div class="inter_per">
+   
+    <input type="text" id="search" placeholder=" Rechercher..." class="form-control">
+   <div id="personList"></div>
+</div>
+</div>
+</section>
 <div class="form_sub">
 <input type="submit" value="Soumettre" class="submit-button">
 </div>

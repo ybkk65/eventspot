@@ -3,7 +3,10 @@ import logo from '../assets/image/1.png';
 export default () => (`
   <nav class="nav_home">
     <div class="nav_left">
-      <img src="${logo}" alt="">
+    <a href="/">
+    <img src="${logo}" alt="">
+</a>
+
       <div class="nav_page">
         <ul>
           <li>home</li>

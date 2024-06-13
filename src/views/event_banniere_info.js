@@ -2,13 +2,13 @@ import { getCategoryEmoji } from './emojieCategorie';
 import { getmajorite } from './majorite';
 import { getacces } from './acces';
 
-export default (date,description_plus,ville,num_tel,email,prix,categorie,nbr_pers,country_name,country_icone,pays,acces,majorite) => (`
+export default (date, description_plus, num_tel, email, prix, categorie, nbr_pers,ville, country_icone, pays, acces, majorite, heure) => (`
   <section class="event_banniere_info">
   <div class="itemhastag_container">
-  <div class="itemhastag"><p>💶${prix}</p></div>
-  <div class="itemhastag"><p>${getCategoryEmoji(categorie)}${categorie}</p></div>
-  <div class="itemhastag"><p>🧑‍🤝‍🧑${nbr_pers}</p></div>
-  <div class="itemhastag "><p><span class="${country_icone}"></span>${pays}</p></div>
+  <div class="itemhastag"><p>💶  ${prix}€</p></div>
+  <div class="itemhastag"><p>${getCategoryEmoji(categorie)}  ${categorie}</p></div>
+  <div class="itemhastag"><p>🧑‍🤝‍🧑 ${nbr_pers}</p></div>
+  <div class="itemhastag "><p><span class="${country_icone}"></span> ${pays}</p></div>
   <div class="itemhastag"><p>${getacces(acces)} ${acces}</p></div>
   <div class="itemhastag"><p>${getmajorite(majorite)} ${majorite}</p></div>
 </div>
@@ -23,7 +23,7 @@ export default (date,description_plus,ville,num_tel,email,prix,categorie,nbr_per
       <p>
         Date :${date}
         <br><br>
-        Heure : ${prix}
+        Heure : ${heure}
         <br><br>
         Lieu : ${ville},${pays}
       </p>

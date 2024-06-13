@@ -1,4 +1,6 @@
 import logo from '../assets/image/1.png';
+import axios from 'axios';
+import Cookies from 'js-cookie';
 
 class Logout {
   constructor(params) {
@@ -6,6 +8,24 @@ class Logout {
     this.params = params;
     this.logo = logo;
     this.run();
+  }
+
+  async sendLogoutRequest() {
+    try {
+      const response = await axios.post('http://localhost/logout');
+
+      if (response.status === 200) {
+        Cookies.remove('session_id');
+        Cookies.remove('user');
+        console.log('Logout successful, cookies removed');
+        this.confirmLogout();
+      } else {
+        console.error('Unexpected response status:', response.status);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      console.log("An error occurred while logging out.");
+    }
   }
 
   confirmLogout() {
@@ -59,7 +79,7 @@ class Logout {
 
   run() {
     this.render();
-    document.getElementById('confirm-logout-button').addEventListener('click', () => this.confirmLogout());
+    document.getElementById('confirm-logout-button').addEventListener('click', () => this.sendLogoutRequest());
   }
 }
 

@@ -1,10 +1,12 @@
 import logo from '../assets/image/logoeventgbwhite.png';
 import photo from '../assets/image/profil.png';
 
-export default () => (`
+export default (userInfo) => (`
 <div class="nav_dashbord">
   <div class="nav_dashbord_logo">
+  <a href="/">
     <img src="${logo}" alt="">
+    </a>
   </div>
   
   <div class="dash_container_menu">
@@ -31,6 +33,24 @@ export default () => (`
       <div class="dash_container_item_part">
         <i class="fa-regular fa-calendar-check"></i>
         <p>Mes événements</p>
+      </div>
+      <i class="fa-solid fa-chevron-right"></i>
+    </div>
+    </a>
+    <a href="/dashbord?page=gerer_inscription">
+    <div id="menu_gerer_inscription" class="dash_container_item">
+      <div class="dash_container_item_part">
+      <i class="fa-solid fa-check-to-slot"></i>
+        <p>gerer les demandes inscriptions</p>
+      </div>
+      <i class="fa-solid fa-chevron-right"></i>
+    </div>
+    </a>
+    <a href="/dashbord?page=inscription">
+    <div id="menu_inscription" class="dash_container_item">
+      <div class="dash_container_item_part">
+      <i class="fa-solid fa-file-contract"></i>
+        <p>Mes inscriptions</p>
       </div>
       <i class="fa-solid fa-chevron-right"></i>
     </div>
@@ -75,7 +95,7 @@ export default () => (`
   <div class="bottom_nav">
     <div class="bottom_nav_user">
       <img src="${photo}" alt="">
-      <p>Salut Alice!</p>
+      <p>Salut ${userInfo.prenom} ${userInfo.nom}!</p>
     </div>
     <a href="/logout">
       <i class="fa-solid fa-right-from-bracket"></i>

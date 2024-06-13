@@ -1,4 +1,3 @@
-import bcrypt from 'bcryptjs';
 import register from '../views/register';
 
 class Register {
