@@ -1,4 +1,4 @@
-export default (titre,description,ville,pays,image) => (`
+export default (titre, description, ville, pays, image) => (`
   <section class="event_banniere_part">
     <label class="container">
       <input type="checkbox">
@@ -16,8 +16,8 @@ export default (titre,description,ville,pays,image) => (`
         <div class="left_event_info">
           <div>
             <h2>${titre}</h2>
-            <p class="${description}</p>
-            <p><i class="fa-solid fa-location-dot" style="color: #ffffff;"></i>${ville},${pays}</p>
+            <p>${description}</p>
+            <p><i class="fa-solid fa-location-dot" style="color: #ffffff;"></i> ${ville}, ${pays}</p>
           </div>
         </div>
       </div>

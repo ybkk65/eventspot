@@ -15,6 +15,7 @@ export default () => (`
 
         <div class="form_container">
           <form class="form">
+          <p class="errorLogin" style="display: none;">Email ou mot de passe incorrect</p>
             <div class="flex-column">
               <label>Email</label>
             </div>

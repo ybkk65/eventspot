@@ -13,18 +13,20 @@ class Register {
       prenom: document.querySelector('#prenomInput').value,
       email: document.querySelector('#emailInput').value,
       password: document.querySelector('#passwordInput').value,
-      confirmPassword: document.querySelector('#confirmPasswordInput').value,
+      confirmPassword: document.querySelector('#confirmPasswordInput').value
     };
     return formData;
   }
 
   verifyDataRegister(formData) {
-    const { nom, prenom, email, password, confirmPassword } = formData;
+    const {
+      nom, prenom, email, password, confirmPassword
+    } = formData;
     const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{10,}$/;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const nameRegex = /^[a-zA-Z]+$/;
 
-    let errors = {
+    const errors = {
       nom: '',
       prenom: '',
       email: '',
@@ -57,7 +59,6 @@ class Register {
 
   async sendDataToApi(formData) {
     try {
-
       const response = await fetch('http://localhost/register', {
         method: 'POST',
         headers: {
@@ -65,7 +66,6 @@ class Register {
         },
         body: JSON.stringify(formData)
       });
-
       if (response.status === 201) {
         const registerForm = document.querySelector('#registerForm');
         registerForm.reset();
@@ -73,10 +73,10 @@ class Register {
         if (successMessage) {
           successMessage.textContent = 'Inscription réussie! Veuillez vous connecter';
         }
-      } else {
-        const responseData = await response.json();
-        return { success: false, message: responseData.message };
+        return { success: true };
       }
+      const responseData = await response.json();
+      return { success: false, message: responseData.message };
     } catch (error) {
       return { success: false, message: error.message };
     }
@@ -84,12 +84,11 @@ class Register {
 
   attachEventListeners() {
     const formInputs = document.querySelectorAll('.input');
-    formInputs.forEach(input => {
+    formInputs.forEach((input) => {
       input.addEventListener('input', () => {
         this.verifyForm(false);
       });
     });
-
     const registerForm = document.querySelector('#registerForm');
     if (registerForm) {
       registerForm.addEventListener('submit', async (event) => {
@@ -102,27 +101,21 @@ class Register {
   async verifyForm(isSubmission) {
     const formData = this.collectDataRegister();
     const errors = this.verifyDataRegister(formData);
-
-    // Clear all previous error messages
-    document.querySelectorAll('.error-message').forEach(el => {
-      if (el) {
-        el.textContent = '';
-      }
+    const errorElements = document.querySelectorAll('.error-message');
+    errorElements.forEach((element) => {
+      const errorElement = element;
+      errorElement.textContent = '';
     });
-
     let hasErrors = false;
-
-    // Display error messages
-    for (const [key, message] of Object.entries(errors)) {
+    Object.entries(errors).forEach(([key, message]) => {
       if (message) {
         hasErrors = true;
-        const errorElement = document.querySelector(`#${key}Error`);
-        if (errorElement) {
-          errorElement.textContent = message;
+        const specificErrorElement = document.querySelector(`#${key}Error`);
+        if (specificErrorElement) {
+          specificErrorElement.textContent = message;
         }
       }
-    }
-
+    });
     if (!hasErrors && isSubmission) {
       await this.sendDataToApi(formData);
     }

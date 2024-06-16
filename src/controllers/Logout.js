@@ -1,12 +1,13 @@
-import logo from '../assets/image/1.png';
 import axios from 'axios';
 import Cookies from 'js-cookie';
+import logo from '../assets/image/1.png';
 
 class Logout {
   constructor(params) {
     this.el = document.querySelector('#root');
     this.params = params;
     this.logo = logo;
+    this.errors = [];
     this.run();
   }
 
@@ -17,14 +18,14 @@ class Logout {
       if (response.status === 200) {
         Cookies.remove('session_id');
         Cookies.remove('user');
-        console.log('Logout successful, cookies removed');
+        this.errors.push('Logout successful, cookies removed');
         this.confirmLogout();
       } else {
-        console.error('Unexpected response status:', response.status);
+        this.errors.push('Unexpected response status:', response.status);
       }
     } catch (error) {
-      console.error('Error:', error);
-      console.log("An error occurred while logging out.");
+      this.errors.push('Error:', error);
+      this.errors.push('An error occurred while logging out.');
     }
   }
 

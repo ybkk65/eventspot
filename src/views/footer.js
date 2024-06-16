@@ -3,7 +3,7 @@ export default () => (`
     <div class="footer-container">
       <div class="footer-column">
         <h3>About Us</h3>
-        <p>Event Spot, your site for easily and <br>efficiently organizing all your special <br>occasions.</p>
+        <p>Event Spot, your site for easily and<br>efficiently organizing all your special<br>occasions.</p>
       </div>
       <div class="footer-column">
         <h3>Services</h3>

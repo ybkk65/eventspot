@@ -1,56 +1,51 @@
 import $ from 'jquery';
+import Cookies from 'js-cookie';
+import axios from 'axios';
 import 'select2';
 import footer from '../views/footer';
 import searchBarHome from '../views/searchBarHome';
 import nav from '../views/nav';
 import nav_connected from '../views/nav_connected';
 import banniere from '../assets/image/banniere_home.png';
-import Cookies from 'js-cookie';
-import axios from 'axios';
 import card from '../views/card';
 
 class Home {
   constructor(params) {
     this.el = document.querySelector('#root');
     this.params = params;
+    this.errors = [];
+    this.lastEventId = null;
     this.run();
   }
 
   async checkSession() {
     const sessionId = Cookies.get('session_id');
-  
     if (!sessionId) {
-      console.log('No session ID found');
+      this.errors.push('No session ID found');
       return false;
     }
-  
     try {
       const response = await axios.get('http://localhost/authentification', {
         headers: {
-          'Authorization': `Bearer ${sessionId}`
+          Authorization: `Bearer ${sessionId}`
         }
       });
-  
       if (response.status === 200) {
-        console.log('Session is valid');
+        this.errors.push('Session is valid');
         return true;
-      } else {
-        console.error('Invalid session');
-        return false;
       }
+      this.errors.pusherror('Invalid session');
+      return false;
     } catch (error) {
-      console.error('Error checking session:', error);
+      this.errors.pusherror('Error checking session:', error);
       return false;
     }
   }
-
 
   setupEventListeners() {
     const nameInfoLog = document.getElementById('nameInfoLog');
     const imgPg = document.getElementById('imgPg');
     const chevronIcon = document.getElementById('chevronIcon');
-
-    // Ajout d'un écouteur d'événements sur le clic pour nameInfoLog
     if (nameInfoLog) {
       nameInfoLog.addEventListener('click', () => {
         imgPg.classList.toggle('show');
@@ -62,20 +57,20 @@ class Home {
 
   cardInfo() {
     document.addEventListener('click', async (clickEvent) => {
-      const card = clickEvent.target.closest('.event_card');
-      if (card) {
-        const eventId = card.getAttribute('data-id');
+      const cardclick = clickEvent.target.closest('.event_card');
+      if (cardclick) {
+        const eventId = cardclick.getAttribute('data-id');
         window.location.href = `/card-info?eventCards=${eventId}`;
       }
     });
   }
-  
+
   async getEventClicked() {
-    document.addEventListener('click', async (clickEvent) => { 
-      const card = clickEvent.target.closest('.event_card'); 
-      if (card) {
-        const eventId = card.getAttribute('data-id');
-        console.log('ID de la carte cliquée :', eventId);
+    document.addEventListener('click', async (clickEvent) => {
+      const clickedCard = clickEvent.target.closest('.event_card'); // Renommer 'card' en 'clickedCard'
+      if (clickedCard) {
+        const eventId = clickedCard.getAttribute('data-id');
+        this.errors.push('ID de la carte cliquée :', eventId);
         if (eventId) {
           const eventData = await this.getOneEventFromDb(eventId);
           if (eventData && eventData.success) {
@@ -101,15 +96,14 @@ class Home {
               eventDetails.heure
             );
           } else {
-            console.error('Données de l\'événement non trouvées');
+            this.errors.push('Données de l\'événement non trouvées');
           }
         } else {
-          console.error('ID de la carte non trouvé');
+          this.errors.push('ID de la carte non trouvé');
         }
       }
     });
   }
-  
 
   showflag() {
     $('.select2').select2({
@@ -167,37 +161,52 @@ class Home {
         return '';
     }
   }
-  
+
   async getEventFromDb() {
- 
-    const userId = parseInt(JSON.parse(Cookies.get('user')).id);
-    if (!isNaN(userId)) { 
+    const userCookie = Cookies.get('user');
+    if (!userCookie) {
       try {
-        const response = await axios.get(`http://localhost/Recent_event/${userId}`);
+        const response = await axios.get('http://localhost/event');
         if (response.status !== 200) {
           throw new Error('Erreur lors de la récupération des données de l\'API');
         }
         return response.data;
       } catch (error) {
-        console.error('Erreur lors de la récupération des données:', error);
+        this.errors.push('Erreur lors de la récupération des données:', error);
         return null;
       }
     } else {
-      console.error('ID non valide ou non fourni');
-      return null;
+      try {
+        const userInfo = JSON.parse(userCookie);
+        const userId = parseInt(userInfo.id, 10);
+        if (!Number.isNaN(userId)) {
+          try {
+            const response = await axios.get(`http://localhost/Recent_event/${userId}`);
+            if (response.status !== 200) {
+              throw new Error('Erreur lors de la récupération des données de l\'API');
+            }
+            return response.data;
+          } catch (error) {
+            this.errors.push('Erreur lors de la récupération des données:', error);
+            return null;
+          }
+        } else {
+          this.errors.push('ID non valide ou non fourni');
+          return null;
+        }
+      } catch (error) {
+        this.errors.push('Error parsing user info from cookies:', error);
+        return null;
+      }
     }
-   
   }
 
   async renderAllRecentEvent() {
     const eventData = await this.getEventFromDb();
-
-    if (eventData && eventData.success && eventData.data) {
-      eventData.data.forEach(event => {
+    if (eventData && eventData.success && eventData.data && eventData.data.length > 0) {
+      eventData.data.forEach((event) => {
         const mois = this.getMonthAbbreviation(event.date.split('-')[1]);
         const imageBase64 = `data:image/jpeg;base64,${event.image_base64}`;
-        
-
         this.renderEvent(
           event.id,
           mois,
@@ -215,15 +224,49 @@ class Home {
           imageBase64
         );
       });
+      this.lastEventId = eventData.data[eventData.data.length - 1].id;
       this.getEventClicked();
     } else {
-      console.error("Erreur lors de la récupération des événements depuis la base de données");
+      const noEventsMessage = this.el.querySelector('.no_events_message');
+      if (noEventsMessage) {
+        noEventsMessage.style.display = 'block';
+      }
     }
   }
 
-  renderEvent(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image) {
+  renderEvent(
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image
+  ) {
     const rightContainer = document.querySelector('.event_container');
-    const eventElement = card(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image);
+    const eventElement = card(
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image
+    );
     if (rightContainer) {
       rightContainer.insertAdjacentHTML('beforeend', eventElement);
       this.showflag();
@@ -231,24 +274,19 @@ class Home {
   }
 
   async render() {
-    let navContent = ''; // Initialisation de navContent
-
-    const sessionValid = await this.checkSession(); // Vérification de la session
-
+    let navContent = '';
+    const sessionValid = await this.checkSession();
     if (sessionValid) {
-      // Récupérer les informations utilisateur des cookies
       const user = Cookies.get('user');
       let userInfo = {};
-
       if (user) {
         try {
           userInfo = JSON.parse(user);
         } catch (error) {
-          console.error('Error parsing user info from cookies:', error);
+          this.errors.pusherror('Error parsing user info from cookies:', error);
         }
       }
 
-      // Passer les informations utilisateur à nav_connected
       navContent = nav_connected(userInfo);
     } else {
       navContent = nav();
@@ -275,19 +313,81 @@ class Home {
           <div class="more_button">
             <button>Load More Event</button>
           </div>
+          <div class="no_events_message" style="display: none;">
+        Aucun événement supplémentaire disponible pour le moment.
+      </div>
         </section>
       </div>
       ${footer()}
     `;
     this.el.innerHTML = html;
-
-    this.setupEventListeners(); // Appel de la méthode pour configurer les écouteurs d'événements
+    this.setupEventListeners();
   }
+
+  async getRecentEventsAfterId(lastEventId) {
+    const userId = parseInt(JSON.parse(Cookies.get('user')).id, 10);
+    if (!Number.isNaN(userId)) {
+      try {
+        const response = await axios.get(`http://localhost/Recent_event_after/${userId}/${lastEventId}`);
+        if (response.status !== 200) {
+          throw new Error('Erreur lors de la récupération des données de l\'API');
+        }
+        return response.data;
+      } catch (error) {
+        this.errors.push('Erreur lors de la récupération des données:', error);
+        return null;
+      }
+    } else {
+      this.errors.push('ID non valide ou non fourni');
+      return null;
+    }
+  }
+
+  async renderMoreRecentEvents() {
+    const eventData = await this.getRecentEventsAfterId(this.lastEventId);
+    if (eventData && eventData.success && eventData.data && eventData.data.length > 0) {
+      eventData.data.forEach((event) => {
+        const mois = this.getMonthAbbreviation(event.date.split('-')[1]);
+        const imageBase64 = `data:image/jpeg;base64,${event.image_base64}`;
+        this.renderEvent(
+          event.id,
+          mois,
+          event.date.split('-')[2],
+          event.titre,
+          event.description,
+          event.prix,
+          event.categorie,
+          event.nbr_pers,
+          event.country_name,
+          event.country_icone,
+          event.pays,
+          event.acces,
+          event.majorite,
+          imageBase64
+        );
+      });
+      this.lastEventId = eventData.data[eventData.data.length - 1].id;
+      this.getEventClicked();
+    } else {
+      const noEventsMessage = this.el.querySelector('.no_events_message');
+      if (noEventsMessage) {
+        noEventsMessage.style.display = 'block';
+      }
+    }
+  }
+
+  async listenerMoreEvent() {
+    const moreButton = this.el.querySelector('.more_button button');
+    moreButton.addEventListener('click', async () => {
+      await this.renderMoreRecentEvents();
+    });
+  }
+
   async run() {
     await this.render();
     await this.renderAllRecentEvent();
     this.cardInfo();
-   
+    this.listenerMoreEvent();
   }
 }
 

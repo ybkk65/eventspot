@@ -1,9 +1,6 @@
 import registerImage from '../assets/image/13.png';
-import logo from '../assets/image/1.png';
 
 export default () => (`
-
-  
 <section class="login_section">
 
 <div class='login_right_part'>
@@ -15,22 +12,14 @@ export default () => (`
     </div>
     <img src="${registerImage}" alt="">
 </div>
-
     <div class="login_left_part">
-
         <div class="to_back">
             <a href="/"><i class="fa-solid fa-arrow-left"></i>retour</a>
         </div>
-
         <div class="form_and_logo">
-
-           
-
             <div class="form_container">
             <form class="form" id="registerForm">
             <div id="successMessage" class="success-message"></div>
-
-
                     <div class="flex-column">
                         <label>Nom </label>
                     </div>
@@ -39,18 +28,14 @@ export default () => (`
                         <input type="text" class="input" id="nomInput" placeholder="Enter your Name">
                     </div>
                     <p id="nomError" class="error-message"></p>
-
                     <div class="flex-column">
                     <label>Prénom </label>
                 </div>
                 <div class="inputForm">
                     <svg xmlns="http://www.w3.org/2000/svg" id="Outline" viewBox="0 0 24 24" width="20" height="512"><path d="M12,12A6,6,0,1,0,6,6,6.006,6.006,0,0,0,12,12ZM12,2A4,4,0,1,1,8,6,4,4,0,0,1,12,2Z"/><path d="M12,14a9.01,9.01,0,0,0-9,9,1,1,0,0,0,2,0,7,7,0,0,1,14,0,1,1,0,0,0,2,0A9.01,9.01,0,0,0,12,14Z"/></svg>
                     <input type="text" class="input" id="prenomInput" placeholder="Enter your Name">
-                   
                 </div>
                 <p id="prenomError" class="error-message"></p>
-
-
                     <div class="flex-column">
                         <label>Email </label>
                     </div>
@@ -64,7 +49,6 @@ export default () => (`
                         
                     </div>
                     <p id="emailError" class="error-message"></p>
-    
                     <div class="flex-column">
                         <label>Password </label>
                     </div>
@@ -79,8 +63,6 @@ export default () => (`
                         </svg>
                     </div>
                     <p id="passwordError" class="error-message"></p>
-
-
                     <div class="flex-column">
                         <label>Confirm Password </label>
                     </div>
@@ -96,20 +78,11 @@ export default () => (`
                         
                     </div>
                     <p id="confirmPasswordError" class="error-message"></p>
-    
-    
-                 
                     <button class="button-submit">Sign Up</button>
                     
                 </form>
-               
             </div>
         </div>
-
     </div>
-
-  
-
 </section>
-
 `);

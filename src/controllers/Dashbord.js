@@ -1,7 +1,7 @@
+import Cookies from 'js-cookie';
+import axios from 'axios';
 import $ from 'jquery';
 import 'select2';
-import axios from 'axios';
-import Cookies from 'js-cookie';
 import leftPart from '../views/left_dash';
 import rightPart from '../views/right_dash';
 import card_like from '../views/card_like';
@@ -12,12 +12,15 @@ import card_delete from '../views/card_sup';
 import card from '../views/card';
 import card_inscription from '../views/card_inscription';
 import card_inscrition_edit from '../views/card_inscrition_edit';
-
+import editForm from '../views/editForm';
+import card_modif from '../views/card_modif';
+import UpdateUserDataForm from '../views/UpdateUserDataForm';
 
 class Dashbord {
   constructor(params) {
     this.el = document.querySelector('#root');
     this.params = params.page || 'accueil';
+    this.errors = [];
     this.run();
   }
 
@@ -25,16 +28,13 @@ class Dashbord {
     const date = new Date();
     const joursSemaine = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
     const moisAnnee = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-
     const jourSemaine = joursSemaine[date.getDay()];
     const jour = date.getDate();
     const mois = moisAnnee[date.getMonth()];
     let heure = date.getHours();
     let minute = date.getMinutes();
-
     if (minute < 10) minute = `0${minute}`;
     if (heure < 10) heure = `0${heure}`;
-
     return `${jourSemaine} ${jour} ${mois} ${heure}h${minute}`;
   }
 
@@ -50,28 +50,28 @@ class Dashbord {
   async getPageDashbord() {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
     if (!rightContainer) return;
-
     const sessionValid = await this.checkSession();
     if (!sessionValid) {
       window.location.href = '/';
       return;
     }
-
     switch (this.params) {
       case 'accueil':
         rightContainer.innerHTML = '<p>Contenu de la page Accueil</p>';
         break;
       case 'compte':
-        rightContainer.innerHTML = '<p>Contenu de la page Mon compte</p>';
+        rightContainer.innerHTML = `${UpdateUserDataForm(this.renderActualDataUserInForm())}`;
+        this.toggleFormVisibility();
+        this.detectSendFormModifUser();
         break;
       case 'evenements':
         this.renderAllMyEvent();
         this.getEventClicked();
         break;
       case 'gerer_inscription':
-       await this.RenderAllEventInscriptionStatus();
-       this.verifierStatut();
-      break;
+        await this.RenderAllEventInscriptionStatus();
+        this.bindEventListeners();
+        break;
       case 'inscription':
         this.renderAllMyInscription();
         break;
@@ -79,16 +79,18 @@ class Dashbord {
         await this.renderAllEvent();
         break;
       case 'nouvel_evenement':
-        rightContainer.innerHTML =  `${form()}`;
-        this.collectAndSendDataForm();
+        rightContainer.innerHTML = `${form()}`;
         this.showflag();
-          this.invitePerson();
+        this.collectAndSendDataForm();
+        this.invitePerson();
         break;
       case 'modifier_evenement':
-        rightContainer.innerHTML = '<p>Contenu de la page Modifier un événement</p>';
+        await this.renderAllEventEdit();
+        this.checkIfClickModif();
         break;
       case 'supprimer_evenement':
-        rightContainer.innerHTML = `${card_delete()}`;
+        await this.renderSupMyEvent();
+        this.checkIfClickSup();
         break;
       default:
         rightContainer.innerHTML = '<p>Page non trouvée</p>';
@@ -122,63 +124,52 @@ class Dashbord {
   }
 
   collectAndSendDataForm() {
+    this.showflag();
     document.querySelector('form').addEventListener('submit', (event) => {
-        event.preventDefault();
-
-        const formData = new FormData(event.target);
-
-        const countrySelect = document.querySelector('#select2');
-        if (countrySelect) {
-            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
-            formData.append('country', selectedOption.value);
-            formData.append('countryIcon', selectedOption.getAttribute('data-icon'));
-            formData.append('countryName', selectedOption.textContent);
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const countrySelect = document.querySelector('#select2');
+      if (countrySelect) {
+        const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+        formData.append('country', selectedOption.value);
+        formData.append('countryIcon', selectedOption.getAttribute('data-icon'));
+        formData.append('countryName', selectedOption.textContent);
+      }
+      const imageFileInput = document.getElementById('inputImage');
+      if (imageFileInput) {
+        const imageFile = imageFileInput.files[0];
+        if (imageFile) {
+          formData.append('image', imageFile);
         }
-
-        const imageFileInput = document.getElementById('inputImage');
-        if (imageFileInput) {
-            const imageFile = imageFileInput.files[0];
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
+      }
+      const userId = Cookies.get('user') ? JSON.parse(Cookies.get('user')).id : null;
+      formData.append('userId', userId);
+      const emailPersonCheckboxes = document.querySelectorAll('.email_person_checkbox');
+      const selectedPersons = [];
+      emailPersonCheckboxes.forEach((checkbox, index) => {
+        if (checkbox.checked) {
+          const email = checkbox.closest('.select_person').querySelector('.email').textContent.trim().slice(1, -1);
+          selectedPersons.push(`email${index + 1}: ${email}`);
         }
-
-        const userId = Cookies.get('user') ? JSON.parse(Cookies.get('user')).id : null;
-        formData.append('userId', userId);
-
-        // Récupérer les emails des personnes sélectionnées
-        const emailPersonCheckboxes = document.querySelectorAll('.email_person_checkbox');
-        const selectedPersons = [];
-        emailPersonCheckboxes.forEach((checkbox, index) => {
-            if (checkbox.checked) {
-                const email = checkbox.closest('.select_person').querySelector('.email').textContent.trim().slice(1, -1);
-                selectedPersons.push(`email${index + 1}: ${email}`);
-            }
+      });
+      const selectedPersonsString = `{${selectedPersons.join(',')}}`;
+      formData.append('selectedPersons', selectedPersonsString);
+      const resultContainer = document.getElementById('formResult');
+      const jsonObject = {};
+      formData.forEach((value, key) => {
+        jsonObject[key] = value;
+      });
+      resultContainer.textContent = JSON.stringify(jsonObject, null, 2);
+      axios.post('http://localhost/event', formData, {})
+        .then((response) => {
+          this.errors.push('Réponse du serveur:', response.data);
+        })
+        .catch((error) => {
+          this.errors.push('Erreur lors de l\'envoi des données:', error);
         });
-
-        const selectedPersonsString = `{${selectedPersons.join(',')}}`;
-
-        formData.append('selectedPersons', selectedPersonsString);
-
-        const resultContainer = document.getElementById('formResult');
-        const jsonObject = {};
-        formData.forEach((value, key) => {
-            jsonObject[key] = value;
-        });
-        resultContainer.textContent = JSON.stringify(jsonObject, null, 2);
-
-        console.log(formData);
-        axios.post('http://localhost/event', formData, {})
-            .then((response) => {
-                console.log('Réponse du serveur:', response.data);
-            })
-            .catch((error) => {
-                console.error('Erreur lors de l\'envoi des données:', error);
-            });
     });
     this.showflag();
-}
-
+  }
 
   async getOneEventFromDb(id) {
     if (id) {
@@ -189,18 +180,18 @@ class Dashbord {
         }
         return response.data;
       } catch (error) {
-        console.error(error);
+        this.errors.push(error);
         return null;
       }
     } else {
-      console.error('ID non fourni');
+      this.errors.push('ID non fourni');
       return null;
     }
   }
 
   async getMyEventFromDb() {
-    const userId = parseInt(JSON.parse(Cookies.get('user')).id);
-    if (!isNaN(userId)) { 
+    const userId = parseInt(JSON.parse(Cookies.get('user')).id, 10);
+    if (!Number.isNaN(userId)) {
       try {
         const response = await axios.get(`http://localhost/My_Event/${userId}`);
         if (response.status !== 200) {
@@ -208,24 +199,21 @@ class Dashbord {
         }
         return response.data;
       } catch (error) {
-        console.error(error);
+        this.errors.push(error);
         return null;
       }
     } else {
-      console.error('ID non valide ou non fourni');
+      this.errors.push('ID non valide ou non fourni');
       return null;
     }
   }
-  
+
   async renderAllMyEvent() {
     const eventData = await this.getMyEventFromDb();
-
     if (eventData && eventData.success && eventData.data) {
-      eventData.data.forEach(event => {
+      eventData.data.forEach((event) => {
         const mois = this.getMonthAbbreviation(event.date.split('-')[1]);
         const imageBase64 = `data:image/jpeg;base64,${event.image_base64}`;
-        
-
         this.renderEvent(
           event.id,
           mois,
@@ -245,21 +233,158 @@ class Dashbord {
       });
       this.getEventClicked();
     } else {
-      console.error("Erreur lors de la récupération des événements depuis la base de données");
+      this.errors.push('Erreur lors de la récupération des événements depuis la base de données');
     }
   }
 
-  deleteEvent(){
+  async renderAllEventEdit() {
+    const eventData = await this.getMyEventFromDb();
+    if (eventData && eventData.success && eventData.data) {
+      eventData.data.forEach((event) => {
+        const mois = this.getMonthAbbreviation(event.date.split('-')[1]);
+        const imageBase64 = `data:image/jpeg;base64,${event.image_base64}`;
+        this.renderEventModif(
+          event.id,
+          mois,
+          event.date.split('-')[2],
+          event.titre,
+          event.description,
+          event.prix,
+          event.categorie,
+          event.nbr_pers,
+          event.country_name,
+          event.country_icone,
+          event.pays,
+          event.acces,
+          event.majorite,
+          imageBase64
+        );
+      });
+    } else {
+      this.errors.push('Erreur lors de la récupération des événements depuis la base de données');
+    }
+  }
 
-    
+  async renderSupMyEvent() {
+    const eventData = await this.getMyEventFromDb();
+    if (eventData && eventData.success && eventData.data) {
+      eventData.data.forEach((event) => {
+        const mois = this.getMonthAbbreviation(event.date.split('-')[1]);
+        const imageBase64 = `data:image/jpeg;base64,${event.image_base64}`;
+        this.renderEventSup(
+          event.id,
+          mois,
+          event.date.split('-')[2],
+          event.titre,
+          event.description,
+          event.prix,
+          event.categorie,
+          event.nbr_pers,
+          event.country_name,
+          event.country_icone,
+          event.pays,
+          event.acces,
+          event.majorite,
+          imageBase64
+        );
+      });
+    } else {
+      this.errors.push('Erreur lors de la récupération des événements depuis la base de données');
+    }
+  }
+
+  async checkIfClickSup() {
+    const deleteButtons = document.querySelectorAll('.event_icons .deleteEvent');
+    if (deleteButtons.length > 0) {
+      deleteButtons.forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          const eventCard = event.target.closest('.event_card');
+          if (eventCard) {
+            const dataId = eventCard.getAttribute('data-id');
+            await this.deleteEvent(dataId);
+          } else {
+            this.errors.push('Élément parent non trouvé.');
+          }
+        });
+      });
+    } else {
+      this.errors.push('No elements found with the specified classes.');
+    }
+  }
+
+  async checkIfClickModif() {
+    const modifyButtons = document.querySelectorAll('.event_icons .modifEvent');
+
+    if (modifyButtons.length > 0) {
+      modifyButtons.forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          const eventCard = event.target.closest('.event_card');
+
+          if (eventCard) {
+            const dataId = eventCard.getAttribute('data-id');
+            const rightContainer = document.querySelector('.dashbord_container_page_my_event');
+            rightContainer.innerHTML = '';
+
+            const eventData = await this.getOneEventFromDb(dataId);
+
+            if (eventData && eventData.success) {
+              const eventDetails = eventData.data;
+              rightContainer.innerHTML = editForm(
+                eventDetails.titre,
+                eventDetails.description,
+                eventDetails.description_plus,
+                eventDetails.categorie
+              );
+              this.newModifForm(dataId);
+            } else {
+              this.errors.push('Failed to fetch event data or success flag is false.');
+            }
+          } else {
+            this.errors.push('Élément parent non trouvé.');
+          }
+        });
+      });
+    } else {
+      this.errors.push('No elements found with the specified classes.');
+    }
+  }
+
+  async newModifForm(dataId) {
+    document.querySelector('form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const formDataObject = {};
+      formData.forEach((value, key) => {
+        formDataObject[key] = value;
+      });
+      try {
+        const response = await axios.post(`http://localhost/EditEvent/${dataId}`, formDataObject);
+        this.errors.push('Réponse du serveur:', response.data);
+      } catch (error) {
+        this.errors.push('Erreur lors de l\'envoi des données:', error);
+      }
+    });
+  }
+
+  async deleteEvent(eventId) {
+    try {
+      const response = await axios.delete(`http://localhost/Supprimer/${eventId}`);
+      this.errors.push('Événement supprimé:', response.data);
+      const eventCard = document.querySelector(`.event_card[data-id="${eventId}"]`);
+      if (eventCard) {
+        eventCard.remove();
+      }
+    } catch (error) {
+      this.errors.push('Erreur lors de la suppression de l\'événement:', error);
+    }
   }
 
   async getEventClicked() {
-    document.addEventListener('click', async (clickEvent) => { 
-      const card = clickEvent.target.closest('.event_card'); 
-      if (card) {
-        const eventId = card.getAttribute('data-id');
-        console.log('ID de la carte cliquée :', eventId);
+    document.addEventListener('click', async (clickEvent) => {
+      const clickedCard = clickEvent.target.closest('.event_card'); // Rename 'card' to 'clickedCard'
+      if (clickedCard) {
+        const eventId = clickedCard.getAttribute('data-id');
+        this.errors.push('ID de la carte cliquée :', eventId);
         if (eventId) {
           const eventData = await this.getOneEventFromDb(eventId);
           if (eventData && eventData.success) {
@@ -285,22 +410,52 @@ class Dashbord {
               eventDetails.heure
             );
           } else {
-            console.error('Données de l\'événement non trouvées');
+            this.errors.push('Données de l\'événement non trouvées');
           }
         } else {
-          console.error('ID de la carte non trouvé');
+          this.errors.push('ID de la carte non trouvé');
         }
       }
     });
   }
-  
 
-
-  renderCardEvent(date, titre, description, description_plus, ville, num_tel, email, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image, heure) {
+  renderCardEvent(
+    date,
+    titre,
+    description,
+    description_plus,
+    ville,
+    num_tel,
+    email,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image,
+    heure
+  ) {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
     const eventInfo = `
-      ${event_banniere(titre, description, ville, pays, image)} 
-      ${event_banniere_info(date, description_plus, num_tel, email, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, heure)} 
+      ${event_banniere(titre, description, ville, pays, image)}
+      ${event_banniere_info(
+    date,
+    description_plus,
+    num_tel,
+    email,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    heure
+  )}
     `;
     if (rightContainer) {
       rightContainer.innerHTML = '';
@@ -309,15 +464,12 @@ class Dashbord {
     }
   }
 
-
   async getFirstEventClicked() {
     document.addEventListener('DOMContentLoaded', async () => {
       const eventData = await this.getOneEventFromDb();
-
       if (eventData && eventData.success && eventData.data && eventData.data.length > 0) {
         const firstEvent = eventData.data[0];
         const imageBase64 = `data:image/jpeg;base64,${firstEvent.image_base64}`;
-
         this.renderCardEvent(
           firstEvent.date,
           firstEvent.titre,
@@ -337,103 +489,279 @@ class Dashbord {
           imageBase64,
           firstEvent.heure
         );
-  
         this.getEventClicked();
       } else {
-        console.error('Aucun événement trouvé dans la base de données');
+        this.errors.push('Aucun événement trouvé dans la base de données');
       }
     });
   }
 
   async getEventFromDb() {
     try {
-      const response = await axios.get(`http://localhost/event`);
+      const response = await axios.get('http://localhost/event');
       if (response.status !== 200) {
         throw new Error('Erreur lors de la récupération des données de l\'API');
       }
       return response.data;
     } catch (error) {
-      console.error(error);
+      this.errors.push(error);
       return null;
     }
   }
 
-  renderEvent(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image) {
+  renderEvent(
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image
+  ) {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
-    const eventElement = card(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image);
+    const eventElement = card(
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image
+    );
     if (rightContainer) {
       rightContainer.insertAdjacentHTML('beforeend', eventElement);
       this.showflag();
     }
   }
 
-  renderEventLiked(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image) {
+  renderEventLiked(
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image
+  ) {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
-    const eventElement = card_like(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image);
+    const eventElement = card_like(
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image
+    );
     if (rightContainer) {
       rightContainer.insertAdjacentHTML('beforeend', eventElement);
       this.showflag();
     }
   }
 
-  renderEventSup(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image) {
+  renderEventSup(
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image
+  ) {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
-    const eventElement = card_delete(id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image);
+    const eventElement = card_delete(
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image
+    );
     if (rightContainer) {
       rightContainer.insertAdjacentHTML('beforeend', eventElement);
       this.showflag();
     }
   }
-  
-  renderEventInscription(statut, id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image) {
+
+  renderEventModif(
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image
+  ) {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
-    
-    const eventElement = card_inscription(statut, id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image);
-  
+    const eventElement = card_modif(
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image
+    );
+    if (rightContainer) {
+      rightContainer.insertAdjacentHTML('beforeend', eventElement);
+      this.showflag();
+    }
+  }
+
+  renderEventInscription(
+    statut,
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image
+  ) {
+    const rightContainer = document.querySelector('.dashbord_container_page_my_event');
+    const eventElement = card_inscription(
+      statut,
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image
+    );
     if (rightContainer) {
       rightContainer.insertAdjacentHTML('beforeend', eventElement);
       this.showflag();
     } else {
-      console.error('Le conteneur de la page de l\'événement n\'a pas été trouvé.');
+      this.errors.push('Le conteneur de la page de l\'événement n\'a pas été trouvé.');
     }
   }
 
-  renderEventInscription_status(statut, id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image, nom , prenom, premiere_lettre,id_inscription) {
+  renderEventInscription_status(
+    statut,
+    id,
+    mois,
+    jour,
+    titre,
+    description,
+    prix,
+    categorie,
+    nbr_pers,
+    country_name,
+    country_icone,
+    pays,
+    acces,
+    majorite,
+    image,
+    nom,
+    prenom,
+    premiere_lettre,
+    id_inscription
+  ) {
     const rightContainer = document.querySelector('.dashbord_container_page_my_event');
-    const eventElement =  card_inscrition_edit(statut, id, mois, jour, titre, description, prix, categorie, nbr_pers, country_name, country_icone, pays, acces, majorite, image, nom , prenom, premiere_lettre,id_inscription);
-  
+    const eventElement = card_inscrition_edit(
+      statut,
+      id,
+      mois,
+      jour,
+      titre,
+      description,
+      prix,
+      categorie,
+      nbr_pers,
+      country_name,
+      country_icone,
+      pays,
+      acces,
+      majorite,
+      image,
+      nom,
+      prenom,
+      premiere_lettre,
+      id_inscription
+    );
     if (rightContainer) {
       rightContainer.insertAdjacentHTML('beforeend', eventElement);
       this.showflag();
     } else {
-      console.error('Le conteneur de la page de l\'événement n\'a pas été trouvé.');
+      this.errors.push('Le conteneur de la page de l\'événement n\'a pas été trouvé.');
     }
-  }
-
-  
-  async getEventInscription(){
-    const userId = parseInt(JSON.parse(Cookies.get('user')).id);
-    if (!isNaN(userId)) { 
-      try {
-        const response = await axios.get(`http://localhost/MyInscription/${userId}`);
-        if (response.status !== 200) {
-          throw new Error('Erreur lors de la récupération des données de l\'API');
-        }
-        return response.data;
-      } catch (error) {
-        console.error(error);
-        return null;
-      }
-    } else {
-      console.error('ID non valide ou non fourni');
-      return null;
-    }
-
   }
 
   async getEventInscription() {
-    const userId = parseInt(JSON.parse(Cookies.get('user')).id);
-    if (!isNaN(userId)) { 
+    const userId = parseInt(JSON.parse(Cookies.get('user')).id, 10);
+    if (!Number.isNaN(userId)) {
       try {
         const response = await axios.get(`http://localhost/MyInscription/${userId}`);
         if (response.status !== 200) {
@@ -441,48 +769,48 @@ class Dashbord {
         }
         return response.data;
       } catch (error) {
-        console.error('Erreur lors de la récupération des données:', error);
+        this.errors.push(error);
         return null;
       }
     } else {
-      console.error('ID non valide ou non fourni');
+      this.errors.push('ID non valide ou non fourni');
       return null;
     }
   }
-  
+
   async renderAllMyInscription() {
     const incriptionData = await this.getEventInscription();
-  
-    if (incriptionData && incriptionData.success && incriptionData.data && incriptionData.data.length > 0) {
-      incriptionData.data.forEach(inscription => {
-        const mois = this.getMonthAbbreviation(inscription.date.split('-')[1]);
-        const imageBase64 = `data:image/jpeg;base64,${inscription.image_base64}`;
-  
-        this.renderEventInscription(
-          inscription.statut,
-          inscription.id,
-          mois,
-          inscription.date.split('-')[2],
-          inscription.titre,
-          inscription.description,
-          inscription.prix,
-          inscription.categorie,
-          inscription.nbr_pers,
-          inscription.country_name,
-          inscription.country_icone,
-          inscription.pays,
-          inscription.acces,
-          inscription.majorite,
-          imageBase64
-        );
-      });
-  
-  
+    if (incriptionData && incriptionData.success) {
+      if (incriptionData.data && incriptionData.data.length > 0) {
+        incriptionData.data.forEach((inscription) => {
+          const mois = this.getMonthAbbreviation(inscription.date.split('-')[1]);
+          const imageBase64 = `data:image/jpeg;base64,${inscription.image_base64}`;
+          this.renderEventInscription(
+            inscription.statut,
+            inscription.id,
+            mois,
+            inscription.date.split('-')[2],
+            inscription.titre,
+            inscription.description,
+            inscription.prix,
+            inscription.categorie,
+            inscription.nbr_pers,
+            inscription.country_name,
+            inscription.country_icone,
+            inscription.pays,
+            inscription.acces,
+            inscription.majorite,
+            imageBase64
+          );
+        });
+      } else {
+        this.errors.push('Aucun événement trouvé dans la base de données');
+      }
     } else {
-      console.error('Aucun événement trouvé dans la base de données');
+      this.errors.push('Erreur lors de la récupération des événements');
     }
   }
-  
+
   getMonthAbbreviation(monthNumber) {
     switch (monthNumber) {
       case '01':
@@ -516,13 +844,10 @@ class Dashbord {
 
   async renderAllEvent() {
     const eventData = await this.getEventFromDb();
-
     if (eventData && eventData.success && eventData.data) {
-      eventData.data.forEach(event => {
+      eventData.data.forEach((event) => {
         const mois = this.getMonthAbbreviation(event.date.split('-')[1]);
         const imageBase64 = `data:image/jpeg;base64,${event.image_base64}`;
-        
-
         this.renderEventLiked(
           event.id,
           mois,
@@ -542,36 +867,30 @@ class Dashbord {
       });
       this.getEventClicked();
     } else {
-      console.error("Erreur lors de la récupération des événements depuis la base de données");
+      this.errors.push('Erreur lors de la récupération des événements depuis la base de données');
     }
-  }
-
-  async deleteEvent(){
   }
 
   async invitePerson() {
     await this.renderUserChoice();
-  
     const searchInput = document.getElementById('search');
     const personList = document.getElementById('personList');
     const persons = personList.getElementsByClassName('select_person');
     const noResultsMessage = document.createElement('div');
     noResultsMessage.textContent = 'Aucun résultat trouvé';
     noResultsMessage.classList.add('no-results-message');
-    
-    searchInput.addEventListener('input', function() {
+    searchInput.addEventListener('input', () => {
       const filter = searchInput.value.toLowerCase();
       let hasResults = false;
-      Array.from(persons).forEach(function(person) {
-        const name = person.querySelector('h3').textContent.toLowerCase();
+      Array.from(persons).forEach((personElement) => {
+        const name = personElement.querySelector('h3').textContent.toLowerCase();
         if (name.startsWith(filter)) {
-          person.style.display = ''; // Show the person if it matches the search
+          personElement.classList.remove('hidden');
           hasResults = true;
         } else {
-          person.style.display = 'none'; // Hide the person if it doesn't match the search
+          personElement.classList.add('hidden');
         }
       });
-  
       if (!hasResults) {
         if (!document.querySelector('.no-results-message')) {
           personList.appendChild(noResultsMessage);
@@ -583,11 +902,9 @@ class Dashbord {
         }
       }
     });
-  
     const checkbox = document.querySelector('.check_invie');
     const div = document.querySelector('.inter_per');
-  
-    checkbox.addEventListener('change', function() {
+    checkbox.addEventListener('change', () => {
       if (checkbox.checked) {
         div.style.display = 'block';
       } else {
@@ -595,62 +912,52 @@ class Dashbord {
       }
     });
   }
-  
 
   async checkSession() {
     const sessionId = Cookies.get('session_id');
-  
     if (!sessionId) {
-      console.log('No session ID found');
+      this.errors.push('No session ID found');
       return false;
     }
-  
     try {
       const response = await axios.get('http://localhost/authentification', {
         headers: {
-          'Authorization': `Bearer ${sessionId}`
+          Authorization: `Bearer ${sessionId}`
         }
       });
-  
       if (response.status === 200) {
-        console.log('Session is valid');
+        this.errors.push('Session is valid');
         return true;
-      } else {
-        console.error('Invalid session');
-        return false;
       }
+      this.errors.push('Invalid session');
+      return false;
     } catch (error) {
-      console.error('Error checking session:', error);
+      this.errors.push('Error checking session:', error);
       return false;
     }
   }
 
   async UserDataRender() {
-    const sessionValid = await this.checkSession(); // Vérification de la session
-  
-    let userInfo = {}; // Define userInfo object outside the try-catch block
-  
+    const sessionValid = await this.checkSession();
+    let userInfo = {};
     if (sessionValid) {
-      // Récupérer les informations utilisateur des cookies
       const user = Cookies.get('user');
-  
       if (user) {
         try {
           userInfo = JSON.parse(user);
         } catch (error) {
-          console.error('Error parsing user info from cookies:', error);
+          this.errors.push('Error parsing user info from cookies:', error);
         }
       } else {
-        console.error('No user data found in cookies.');
+        this.errors.push('No user data found in cookies.');
       }
     } else {
-      console.error('Session invalid or expired.');
+      this.errors.push('Session invalid or expired.');
     }
-  
-    return userInfo; // Return userInfo, even if it's empty due to errors
+    return userInfo;
   }
-  
-  async  getUsersData() {
+
+  async getUsersData() {
     try {
       const response = await axios.get('http://localhost/users');
       if (response.status !== 200) {
@@ -658,7 +965,7 @@ class Dashbord {
       }
       return response.data;
     } catch (error) {
-      console.error(error);
+      this.errors.push(error);
       return null;
     }
   }
@@ -666,10 +973,9 @@ class Dashbord {
   async renderUserChoice() {
     const users = await this.getUsersData();
     if (users) {
-      users.forEach(user => {
+      users.forEach((user) => {
         const userDiv = document.createElement('div');
         userDiv.classList.add('select_person');
-  
         userDiv.innerHTML = `
           <label class="cl-checkbox">
             <input  type="checkbox" class="email_person_checkbox" value="${user.id}">
@@ -678,28 +984,29 @@ class Dashbord {
           <h3>${user.firstname}</h3>
           <p  class="email">(${user.email})</p>
         `;
-  
         document.getElementById('personList').appendChild(userDiv);
       });
     }
   }
 
-  async showMessageEditInscription(){
+  async showMessageEditInscription() {
     document.addEventListener('click', async (clickEvent) => {
-      const card = clickEvent.target.closest('.event_card');
-      if (card) {
+      const clickedCard = clickEvent.target.closest('.event_card');
+      if (clickedCard) {
         if (clickEvent.target.classList.contains('fa-ellipsis-vertical')) {
-          // Si les trois petits points sont cliqués, afficher/cacher les options supplémentaires
-          const additionalOptions = card.querySelector('.additional_options');
+          const additionalOptions = clickedCard.querySelector('.additional_options');
           if (additionalOptions) {
             additionalOptions.style.display = additionalOptions.style.display === 'block' ? 'none' : 'block';
           }
         } else if (clickEvent.target.textContent === 'Se désinscrire') {
-          // Si "Se désinscrire" est cliqué, exécuter une fonction dédiée
-          await this.handleUnsubscribeEvent(card);
+          const eventId = clickedCard.getAttribute('data-id');
+          if (eventId) {
+            await this.handleUnsubscribeEvent(eventId);
+          } else {
+            this.errors.push('ID de la carte non trouvé');
+          }
         } else if (clickEvent.target.textContent === 'Voir les détails') {
-          // Si "Voir les détails" est cliqué, récupérer et afficher les détails de l'événement
-          const eventId = card.getAttribute('data-id');
+          const eventId = clickedCard.getAttribute('data-id');
           if (eventId) {
             const eventData = await this.getOneEventFromDb(eventId);
             if (eventData && eventData.success) {
@@ -725,151 +1032,290 @@ class Dashbord {
                 eventDetails.heure
               );
             } else {
-              console.error('Données de l\'événement non trouvées');
+              this.errors.push('Données de l\'événement non trouvées');
             }
           } else {
-            console.error('ID de la carte non trouvé');
+            this.errors.push('ID de la carte non trouvé');
           }
         }
       }
     });
-    
-
-
   }
 
- async getEventAndStatusData(){
-    const userId = parseInt(JSON.parse(Cookies.get('user')).id);
-    if (!isNaN(userId)) { 
-      try {
-        const response = await axios.get(`http://localhost/Inscription_status/${userId}`);
-        if (response.status !== 200) {
-          throw new Error('Erreur lors de la récupération des données de l\'API');
-        }
-        return response.data;
-      } catch (error) {
-        console.error('Erreur lors de la récupération des données:', error);
-        return null;
+  async handleUnsubscribeEvent(eventId) {
+    try {
+      const userCookie = Cookies.get('user');
+      if (!userCookie) {
+        throw new Error('User cookie not found');
       }
-    } else {
-      console.error('ID non valide ou non fourni');
+      const userId = parseInt(JSON.parse(userCookie).id, 10);
+      const response = await axios.delete(`http://localhost/DeleteInscription/${eventId}`, {
+        data: { userId }
+      });
+      this.errors.push('Désinscription réussie', response.data);
+      const rightContainer = document.querySelector('.dashbord_container_page_my_event');
+      rightContainer.innerHTML = '';
+      this.renderAllMyInscription();
+    } catch (error) {
+      if (error.response) {
+        this.errors.push('Erreur lors de la désinscription :', error.response.data.message);
+      } else {
+        this.errors.push('Erreur lors de la désinscription :', error.message);
+      }
+    }
+  }
+
+  async getEventAndStatusData() {
+    try {
+      const userCookie = Cookies.get('user');
+      if (!userCookie) {
+        throw new Error('Cookie utilisateur non trouvé');
+      }
+      const userId = parseInt(JSON.parse(userCookie).id, 10);
+      if (Number.isNaN(userId)) {
+        throw new Error('ID non valide ou non fourni');
+      }
+      const response = await axios.get(`http://localhost/Inscription_status/${userId}`);
+      if (response.status !== 200) {
+        throw new Error('Erreur lors de la récupération des données de l\'API');
+      }
+      return response.data;
+    } catch (error) {
+      this.errors.push('Erreur lors de la récupération des données:', error.message);
       return null;
     }
   }
- 
- async RenderAllEventInscriptionStatus(){
-  const incriptionStatusData = await this.getEventAndStatusData();
-  
-    if (incriptionStatusData && incriptionStatusData.success && incriptionStatusData.data && incriptionStatusData.data.length > 0) {
-      incriptionStatusData.data.forEach(StatusData => {
-        const mois = this.getMonthAbbreviation(StatusData.date.split('-')[1]);
-        const imageBase64 = `data:image/jpeg;base64,${StatusData.image_base64}`;
-  
-        this.renderEventInscription_status(
-          StatusData.statut,
-          StatusData.id,
-          mois,
-          StatusData.date.split('-')[2],
-          StatusData.titre,
-          StatusData.description,
-          StatusData.prix,
-          StatusData.categorie,
-          StatusData.nbr_pers,
-          StatusData.country_name,
-          StatusData.country_icone,
-          StatusData.pays,
-          StatusData.acces,
-          StatusData.majorite,
-          imageBase64,
-          StatusData.participant_lastname , 
-          StatusData.participant_firstname,
-          StatusData.participant_firstname.charAt(0),
-          StatusData.id_inscription
-        );
-      });
-  
-  
-    } else {
-      console.error('Aucun événement trouvé dans la base de données');
-    }
 
+  async RenderAllEventInscriptionStatus() {
+    const incriptionStatusData = await this.getEventAndStatusData();
+    if (incriptionStatusData && incriptionStatusData.success) {
+      if (incriptionStatusData.data && incriptionStatusData.data.length > 0) {
+        incriptionStatusData.data.forEach((StatusData) => {
+          const mois = this.getMonthAbbreviation(StatusData.date.split('-')[1]);
+          const imageBase64 = `data:image/jpeg;base64,${StatusData.image_base64}`;
+          this.renderEventInscription_status(
+            StatusData.statut,
+            StatusData.id,
+            mois,
+            StatusData.date.split('-')[2],
+            StatusData.titre,
+            StatusData.description,
+            StatusData.prix,
+            StatusData.categorie,
+            StatusData.nbr_pers,
+            StatusData.country_name,
+            StatusData.country_icone,
+            StatusData.pays,
+            StatusData.acces,
+            StatusData.majorite,
+            imageBase64,
+            StatusData.participant_lastname,
+            StatusData.participant_firstname,
+            StatusData.participant_firstname.charAt(0),
+            StatusData.id_inscription
+          );
+        });
+      } else {
+        this.errors.push('Aucun événement trouvé dans la base de données');
+      }
+    } else {
+      this.errors.push('Erreur lors de la récupération des événements');
+    }
   }
 
-
-// Fonction générique pour mettre à jour le statut d'une inscription
-async updateInscriptionStatus(statut, idInscription) {
-  try {
+  async updateInscriptionStatus(statut, idInscription) {
+    try {
       const data = { statut, idInscription };
       const response = await axios.post('http://localhost/UpdateStatu', data);
-      console.log('Réponse du serveur :', response.data);
-      return response.data; // Si vous avez besoin de manipuler la réponse dans votre application
-  } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut :', error);
-      throw error; // Gérer l'erreur ou la transmettre à un gestionnaire global
-  }
-}
-
-// Fonction pour mettre à jour le statut depuis l'interface
-async UpdateStatutEvent(idInscription) {
-  const statutActuel = document.getElementById("statutActuel").textContent.trim();
-  const selectElement = document.getElementById("etat");
-  const statutChoisi = selectElement.options[selectElement.selectedIndex].value;
-
-  if (statutChoisi === statutActuel) {
-      alert("Veuillez choisir un statut différent pour modifier.");
-      return;
+      this.errors.push('Réponse du serveur :', response.data);
+      return response.data;
+    } catch (error) {
+      this.errors.push('Erreur lors de la mise à jour du statut :', error);
+      throw error;
+    }
   }
 
-  try {
-      await this.updateAndRefreshInscriptionStatus(statutChoisi, idInscription);
-      document.getElementById("statutActuel").textContent = statutChoisi;
-  } catch (error) {
-      console.error("Erreur lors de la mise à jour du statut :", error);
-      alert("Erreur lors de la mise à jour du statut. Veuillez réessayer.");
-  }
-}
-
-// Fonction pour vérifier le statut et lancer la mise à jour
-verifierStatut() {
-  const submitButton = document.querySelector('.submitStatut');
-  submitButton.addEventListener('click', async (event) => {
-      event.preventDefault();
-      
-      const idInscription = submitButton.closest('.card_inscription_edit').dataset.inscriptionid;
-      
-      if (!idInscription) {
-          console.error("ID d'inscription non trouvé");
-          return;
-      }
-      
-      const selectElement = document.getElementById("etat");
-      const statutChoisi = selectElement.options[selectElement.selectedIndex].value;
-
-      try {
-          await this.updateAndRefreshInscriptionStatus(statutChoisi, idInscription);
-      } catch (error) {
-          console.error('Une erreur est survenue :', error);
-          alert('Erreur lors de la mise à jour du statut.');
-      }
-  });
-}
-
-// Fonction pour mettre à jour et rafraîchir le statut d'une inscription
-async updateAndRefreshInscriptionStatus(statut, idInscription) {
-  try {
+  async updateAndRefreshInscriptionStatus(statut, idInscription) {
+    try {
+      const rightContainer = document.querySelector('.dashbord_container_page_my_event');
+      rightContainer.textContent = '';
       await this.updateInscriptionStatus(statut, idInscription);
-      await this.RenderAllEventInscriptionStatus(); // Réafficher la liste mise à jour
-      alert('Statut mis à jour avec succès!');
-  } catch (error) {
-      console.error('Une erreur est survenue :', error);
-      throw error; // Propagez l'erreur pour la gérer plus haut
+      await this.RenderAllEventInscriptionStatus();
+    } catch (error) {
+      this.errors.push('Une erreur est survenue :', error);
+      throw error;
+    }
   }
-}
 
+  bindEventListeners() {
+    this.el.addEventListener('click', async (event) => {
+      if (event.target.classList.contains('submitStatut')) {
+        event.preventDefault();
+        const idInscription = event.target.dataset.inscriptionid;
+        const selectElement = document.getElementById(`etat_${idInscription}`);
+        if (!selectElement) {
+          this.errors.push('Élément select non trouvé pour l\'inscription ID :', idInscription);
+          return;
+        }
+        const statutChoisi = selectElement.value;
+        try {
+          await this.updateAndRefreshInscriptionStatus(statutChoisi, idInscription);
+          const statutActuelElement = document.querySelector(`.statutActuel_${idInscription}`);
+          if (statutActuelElement) {
+            statutActuelElement.textContent = statutChoisi;
+            statutActuelElement.className = `statutActuel_${idInscription} ${statutChoisi}`;
+          }
+        } catch (error) {
+          this.errors.push('Une erreur est survenue :', error);
+          this.errors.push('Erreur lors de la mise à jour du statut.');
+        }
+      }
+    });
+  }
 
+  toggleFormVisibility() {
+    document.querySelectorAll('.header-wrapper').forEach((headerWrapper) => {
+      const formu = headerWrapper.nextElementSibling;
+      const chevronIcon = headerWrapper.querySelector('i');
+      headerWrapper.addEventListener('click', () => {
+        const isHidden = formu.style.display === 'none';
+        formu.style.display = isHidden ? 'block' : 'none';
+        chevronIcon.classList.toggle('fa-chevron-down', !isHidden);
+        chevronIcon.classList.toggle('fa-chevron-up', isHidden);
+      });
+    });
+  }
 
- async render() {
-  const userInfo = await this.UserDataRender();
+  renderActualDataUserInForm() {
+    const user = Cookies.get('user');
+    const userInfo = user ? JSON.parse(user) : {};
+    return userInfo;
+  }
+
+  detectSendFormModifUser() {
+    const forms = document.querySelectorAll('form');
+    const errorContainer = document.querySelector('#errordatauser');
+    forms.forEach((formElement) => {
+      formElement.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        const formDataObject = {};
+        formData.forEach((value, key) => {
+          formDataObject[key] = value;
+        });
+        const errors = this.validateFormData(formDataObject, formElement.id);
+        this.errors.push(formDataObject);
+        if (errors.length === 0) {
+          try {
+            await this.sendFormData(formElement.id, formDataObject);
+          } catch (error) {
+            this.errors.push('Erreur lors de l\'envoi des données:', error);
+          }
+        } else {
+          errorContainer.innerHTML = errors.map((error) => `<p>${error}</p>`).join('');
+        }
+      });
+    });
+  }
+
+  validateFormData(data, formId) {
+    const errors = [];
+    let emailPattern;
+    switch (formId) {
+      case 'nameForm':
+        if (!data.firstName || data.firstName.trim() === '') {
+          errors.push('Le prénom est requis.');
+        }
+        if (!data.lastName || data.lastName.trim() === '') {
+          errors.push('Le nom est requis.');
+        }
+        break;
+      case 'emailForm':
+        emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!data.email || !emailPattern.test(data.email)) {
+          errors.push('Un email valide est requis.');
+        }
+        break;
+      case 'passwordForm':
+        if (!data.password || data.password.length < 8) {
+          errors.push('Le mot de passe doit comporter au moins 8 caractères.');
+        } else {
+          const passwordPattern = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+          if (!passwordPattern.test(data.password)) {
+            errors.push('Le mot de passe doit contenir au moins une lettre majuscule et un caractère spécial.');
+          }
+        }
+        if (data.password !== data.confirmPassword) {
+          errors.push('Les mots de passe ne correspondent pas.');
+        }
+        break;
+      default:
+        errors.push('Formulaire non reconnu.');
+    }
+    return errors;
+  }
+
+  async sendFormData(formId, data) {
+    const userId = parseInt(JSON.parse(Cookies.get('user')).id, 10);
+    let url = '';
+    if (formId === 'nameForm') {
+      url = `http://localhost/EditUserName/${userId}`;
+    } else if (formId === 'emailForm') {
+      url = `http://localhost/EditUserEmail/${userId}`;
+    } else if (formId === 'passwordForm') {
+      url = `http://localhost/EditUserPassword/${userId}`;
+    } else {
+      throw new Error('Formulaire non reconnu');
+    }
+    try {
+      const response = await axios.post(url, data);
+      this.errors.push('Réponse du serveur:', response.data);
+      this.ModifCookies();
+    } catch (error) {
+      this.errors.push('Erreur lors de l\'envoi des données:', error);
+    }
+  }
+
+  async getOneUser() {
+    const userId = parseInt(JSON.parse(Cookies.get('user')).id, 10);
+    try {
+      const response = await axios.get(`http://localhost/OneUser/${userId}`);
+      if (response.status !== 200) {
+        throw new Error('Erreur lors de la récupération des données de l\'API');
+      }
+      return response.data;
+    } catch (error) {
+      this.errors.push(error);
+      return null;
+    }
+  }
+
+  async ModifCookies() {
+    try {
+      const userId = parseInt(JSON.parse(Cookies.get('user')).id, 10);
+      const userData = await this.getOneUser(userId);
+      if (userData) {
+        const user = {
+          id: userData.id,
+          nom: userData.lastname,
+          prenom: userData.firstname,
+          email: userData.email
+        };
+        Cookies.remove('user');
+        Cookies.set('user', JSON.stringify(user), { expires: 7 });
+        const rightContainer = document.querySelector('.dashbord_container_page_my_event');
+        rightContainer.innerHTML = '';
+        rightContainer.innerHTML = `${UpdateUserDataForm(user)}`;
+      } else {
+        throw new Error('Impossible de récupérer les données utilisateur après la mise à jour');
+      }
+    } catch (error) {
+      this.errors.push(error);
+    }
+  }
+
+  async render() {
+    const userInfo = await this.UserDataRender();
     const html = `
       <div class="dash_container">
         ${leftPart(userInfo)}
@@ -879,21 +1325,20 @@ async updateAndRefreshInscriptionStatus(statut, idInscription) {
     `;
     this.el.innerHTML = html;
     this.startAutoUpdate();
+    this.showflag();
   }
 
- async run() {
+  async run() {
     const sessionValid = await this.checkSession();
     if (sessionValid) {
-        await this.render();
-        this.getPageDashbord();
-        this.showflag();
-        this.getFirstEventClicked();
-        this.invitePerson();
-        this. showMessageEditInscription();
-
-       
+      await this.render();
+      this.getPageDashbord();
+      this.showflag();
+      this.getFirstEventClicked();
+      this.showMessageEditInscription();
+      this.bindEventListeners();
     } else {
-        window.location.href = '/';
+      window.location.href = '/';
     }
   }
 }

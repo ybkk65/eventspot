@@ -2,9 +2,9 @@ export default () => (`
 <section class="form_create_section">
 <div class="text_ti">
     <h2>Nouvel événement</h2>
- 
 </div>
-<form enctype="multipart/form-data">
+<form id="modifyEventForm" enctype="multipart/form-data">
+  
     <div class="form_title">
         <label for="titre">Titre</label>
         <input type="text" id="titre" name="titre" class="form-control">

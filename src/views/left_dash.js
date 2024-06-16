@@ -1,5 +1,4 @@
 import logo from '../assets/image/logoeventgbwhite.png';
-import photo from '../assets/image/profil.png';
 
 export default (userInfo) => (`
 <div class="nav_dashbord">
@@ -94,8 +93,8 @@ export default (userInfo) => (`
   </div>
   <div class="bottom_nav">
     <div class="bottom_nav_user">
-      <img src="${photo}" alt="">
-      <p>Salut ${userInfo.prenom} ${userInfo.nom}!</p>
+    <p class="premt">${userInfo.prenom.charAt(0)}</p>
+      <p>Salut ${userInfo.prenom} ${userInfo.nom} !</p>
     </div>
     <a href="/logout">
       <i class="fa-solid fa-right-from-bracket"></i>
