@@ -3,7 +3,7 @@ export default (userInfo) => (`
 <div class="mon_compte_info_all">
 <div class="compte_titre">
 <p class="prem">${userInfo.prenom.charAt(0)}</p>
-<h2>Bonjour Admin !</h2>
+<h2>Bonjour ${userInfo.prenom} !</h2>
 </div>
 <h3 class="voici_info">Voici vos informations</h3>
 <div class="mon_compte_info">

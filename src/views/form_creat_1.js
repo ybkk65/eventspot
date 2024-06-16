@@ -56,16 +56,16 @@ export default () => (`
 <div class="prsn">
   <label class="nombre-pers" for="nombre-personne">Nombre de personnes:</label>
   <div class="number-buttons">
-    <button type="button" id="btn-minus"><i class="fa-solid fa-minus"></i></button>
-    <input type="number" id="nombre-personne" name="nombre-personne" class="input-field">
-    <button type="button" id="btn-plus"><i class="fa-solid fa-plus"></i></button>
+    <button type="button" id="btn-minus_p"><i class="fa-solid fa-minus"></i></button>
+    <input type="number" id="nombre-personne" name="nombre-personne" value="0" class="input-field">
+    <button type="button" id="btn-plus_p"><i class="fa-solid fa-plus"></i></button>
   </div>
 </div>
 <div class="prix">
   <label for="payant">Prix:</label>
   <div class="number-buttons">
     <button type="button" id="btn-minus"><i class="fa-solid fa-minus"></i></button>
-    <input type="text" id="prix_value" name="prix_value" class="input-field">
+    <input type="text" id="prix_value" name="prix_value" value="0" class="input-field">
     <button type="button" id="btn-plus"><i class="fa-solid fa-plus"></i></button>
   </div>
 </div>

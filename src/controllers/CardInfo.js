@@ -82,10 +82,10 @@ class CardInfo {
     });
   }
 
-  async getOneEventFromDb(eventId) {
-    if (eventId) {
+  async getOneEventFromDb() {
+    if (this.params) {
       try {
-        const response = await axios.get(`http://localhost/event_solo/${eventId}`);
+        const response = await axios.get(`http://localhost/event_solo/${this.params}`);
         if (response.status !== 200) {
           throw new Error('Erreur lors de la récupération des données de l\'API');
         }
@@ -149,39 +149,6 @@ class CardInfo {
         utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@23.0.10/build/js/utils.js'
       });
     }
-  }
-
-  async getFirstEventClicked() {
-    document.addEventListener('DOMContentLoaded', async () => {
-      const eventData = await this.getOneEventFromDb(this.params);
-
-      if (eventData && eventData.success && eventData.data) {
-        const firstEvent = eventData.data;
-        const imageBase64 = `data:image/jpeg;base64,${firstEvent.image_base64}`;
-
-        this.renderCardEvent(
-          firstEvent.date,
-          firstEvent.titre,
-          firstEvent.description,
-          firstEvent.description_plus,
-          firstEvent.ville,
-          firstEvent.num_tel,
-          firstEvent.email,
-          firstEvent.prix,
-          firstEvent.categorie,
-          firstEvent.nbr_pers,
-          firstEvent.country_name,
-          firstEvent.country_icone,
-          firstEvent.pays,
-          firstEvent.acces,
-          firstEvent.majorite,
-          imageBase64,
-          firstEvent.heure
-        );
-      } else {
-        this.errors.push('Aucun événement trouvé dans la base de données');
-      }
-    });
   }
 
   async checkInscriptionStatut(event_id, userId) {
@@ -368,7 +335,7 @@ class CardInfo {
     } else {
       navContent = nav();
     }
-    const eventData = await this.getOneEventFromDb(this.params);
+    const eventData = await this.getOneEventFromDb();
     if (eventData && eventData.success && eventData.data) {
       const firstEvent = eventData.data;
       const imageBase64 = `data:image/jpeg;base64,${firstEvent.image_base64}`;

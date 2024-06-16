@@ -34,13 +34,13 @@ export default (
       </div>
       <div class="card_option_container">
         <div class="card_option_container_item">
-          <p>💶${prix}</p>
+          <p>💶 ${prix}€</p>
         </div>
         <div class="card_option_container_item">
           <p>${getCategoryEmoji(categorie)} ${categorie}</p>
         </div>
         <div class="card_option_container_item">
-          <p>🧑‍🤝‍🧑${nbr_pers}</p>
+          <p>🧑‍🤝‍🧑 ${nbr_pers}</p>
         </div>
         <div class="card_option_container_item">
           <p><span id='drap' class="${country_icone}"></span>${pays}</p>

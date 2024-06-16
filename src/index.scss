@@ -14,6 +14,7 @@ body{
 .container_index{
   width: 1400px;
   margin: 0 auto;
+  padding: 0;
 }
 
 
@@ -311,7 +312,7 @@ position: relative;
   
   min-width: 340px;
   max-width: 340px;
-  height: 480px;
+  height: auto;
   box-shadow: 0px 10px 15px -3px rgba(0,0,0,0.1);
   border-radius: 14px;
   margin: 15px;
@@ -344,7 +345,7 @@ transform: translateY(2px);
 
 .event_img img{
   width: 100%;
-  height: 180px;
+  height: 200px;
   border-radius: 14px 14px 0 0 ; 
   
 }
@@ -359,7 +360,12 @@ transform: translateY(2px);
 
 .event_description .titre{
   font-size: 20px;
+  font-weight: 600;
   margin-bottom: 20px;
+}
+
+.event_description .description{
+  font-size: 14px;
 }
 
 .event_country {
@@ -441,7 +447,7 @@ footer {
   text-align: center;
   margin: 0;
   padding-bottom: 20px;
-  margin-top: 30px;
+  padding-top: 30px;
 }
 
 .footer-container {
@@ -1993,7 +1999,7 @@ padding: 10px 0;
   -moz-box-shadow: -5px 0px 38px 2px rgba(184,184,184,1);
   box-shadow: -5px 0px 38px 2px rgba(184,184,184,1);
   border-radius: 12px;
-  height: 240px;
+  height: 260px;
   width: 90%;
   margin: 20px auto;
 
@@ -2028,7 +2034,6 @@ justify-content: center;
 
 .prf_card_inf_information{
   display: flex;
-
   gap:20px;
 }
 
@@ -2036,6 +2041,7 @@ justify-content: center;
 .prf_card_inf_item_container{
   display: flex;
   gap: 6px;
+  padding-bottom: 10px;
 }
 
 .option_container_item p{
@@ -2048,7 +2054,7 @@ justify-content: center;
 
 .prf_card_inf{
   margin: 0 20px;
-  width: 500px;
+  width: 520px;
 }
 
 .leM{
@@ -2070,9 +2076,12 @@ justify-content: center;
 
 }
 
-.leD{
-  max-height: 110px;
+.leD {
+  max-height: 115px; /* Limite la hauteur à 70px */
+  overflow-y: auto;
 }
+
+
 
 .container_statut{
   color: rgb(0, 0, 0);
@@ -2183,7 +2192,6 @@ background-color: rgb(229, 185, 255);
 .prf_card_inf_item_container {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 25px;
 }
 
 .option_container_item{

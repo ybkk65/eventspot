@@ -56,9 +56,6 @@ class Dashbord {
       return;
     }
     switch (this.params) {
-      case 'accueil':
-        rightContainer.innerHTML = '<p>Contenu de la page Accueil</p>';
-        break;
       case 'compte':
         rightContainer.innerHTML = `${UpdateUserDataForm(this.renderActualDataUserInForm())}`;
         this.toggleFormVisibility();
@@ -83,6 +80,8 @@ class Dashbord {
         this.showflag();
         this.collectAndSendDataForm();
         this.invitePerson();
+        this.modifyValuePrice();
+        this.modifyValue();
         break;
       case 'modifier_evenement':
         await this.renderAllEventEdit();
@@ -124,7 +123,6 @@ class Dashbord {
   }
 
   collectAndSendDataForm() {
-    this.showflag();
     document.querySelector('form').addEventListener('submit', (event) => {
       event.preventDefault();
       const formData = new FormData(event.target);
@@ -169,6 +167,52 @@ class Dashbord {
         });
     });
     this.showflag();
+    this.modifyValuePrice();
+    this.modifyValue();
+  }
+
+  modifyValue() {
+    const inputField = document.getElementById('nombre-personne');
+    const btnPlus = document.getElementById('btn-plus_p');
+    const btnMinus = document.getElementById('btn-minus_p');
+    btnPlus.addEventListener('click', () => {
+      const currentValue = parseInt(inputField.value, 10);
+      if (!Number.isNaN(currentValue)) {
+        inputField.value = currentValue + 1;
+      } else {
+        inputField.value = 1;
+      }
+    });
+    btnMinus.addEventListener('click', () => {
+      const currentValue = parseInt(inputField.value, 10);
+      if (!Number.isNaN(currentValue) && currentValue > 0) {
+        inputField.value = currentValue - 1;
+      } else {
+        inputField.value = 0;
+      }
+    });
+  }
+
+  modifyValuePrice() {
+    const inputField = document.getElementById('prix_value');
+    const btnPlus = document.getElementById('btn-plus');
+    const btnMinus = document.getElementById('btn-minus');
+    btnPlus.addEventListener('click', () => {
+      const currentValue = parseInt(inputField.value, 10);
+      if (!Number.isNaN(currentValue)) {
+        inputField.value = currentValue + 1;
+      } else {
+        inputField.value = 1;
+      }
+    });
+    btnMinus.addEventListener('click', () => {
+      const currentValue = parseInt(inputField.value, 10);
+      if (!Number.isNaN(currentValue) && currentValue > 0) {
+        inputField.value = currentValue - 1;
+      } else {
+        inputField.value = 0;
+      }
+    });
   }
 
   async getOneEventFromDb(id) {

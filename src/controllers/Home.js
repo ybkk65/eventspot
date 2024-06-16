@@ -65,46 +65,6 @@ class Home {
     });
   }
 
-  async getEventClicked() {
-    document.addEventListener('click', async (clickEvent) => {
-      const clickedCard = clickEvent.target.closest('.event_card'); // Renommer 'card' en 'clickedCard'
-      if (clickedCard) {
-        const eventId = clickedCard.getAttribute('data-id');
-        this.errors.push('ID de la carte cliquée :', eventId);
-        if (eventId) {
-          const eventData = await this.getOneEventFromDb(eventId);
-          if (eventData && eventData.success) {
-            const eventDetails = eventData.data;
-            const imageBase64 = `data:image/jpeg;base64,${eventDetails.image_base64}`;
-            this.renderCardEvent(
-              eventDetails.date,
-              eventDetails.titre,
-              eventDetails.description,
-              eventDetails.description_plus,
-              eventDetails.ville,
-              eventDetails.num_tel,
-              eventDetails.email,
-              eventDetails.prix,
-              eventDetails.categorie,
-              eventDetails.nbr_pers,
-              eventDetails.country_name,
-              eventDetails.country_icone,
-              eventDetails.pays,
-              eventDetails.acces,
-              eventDetails.majorite,
-              imageBase64,
-              eventDetails.heure
-            );
-          } else {
-            this.errors.push('Données de l\'événement non trouvées');
-          }
-        } else {
-          this.errors.push('ID de la carte non trouvé');
-        }
-      }
-    });
-  }
-
   showflag() {
     $('.select2').select2({
       templateResult: (state) => {
@@ -225,7 +185,6 @@ class Home {
         );
       });
       this.lastEventId = eventData.data[eventData.data.length - 1].id;
-      this.getEventClicked();
     } else {
       const noEventsMessage = this.el.querySelector('.no_events_message');
       if (noEventsMessage) {

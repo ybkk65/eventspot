@@ -9,15 +9,6 @@ export default (userInfo) => (`
   </div>
   
   <div class="dash_container_menu">
-  <a href="/dashbord?page=accueil">
-    <div id="menu_accueil" class="dash_container_item">
-      <div class="dash_container_item_part">
-        <i class="fa-solid fa-house"></i>
-        <p>Accueil</p>
-      </div>
-      <i class="fa-solid fa-chevron-right"></i>
-    </div>
-    </a>
     <a href="/dashbord?page=compte">
     <div id="menu_compte" class="dash_container_item">
       <div class="dash_container_item_part">
